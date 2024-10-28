@@ -8,6 +8,7 @@
  * For Unity Version: 2022.3
  */
 
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -33,6 +34,7 @@ public class UIManager : MonoBehaviour
     private InputAction mouseAction;
     private InputAction deltaAction;
     private InputAction selectAction;
+    private InputAction cameraAction;
 #endregion
 
 #region Events
@@ -54,6 +56,7 @@ public class UIManager : MonoBehaviour
         mouseAction = actions.mouse.position;
         deltaAction = actions.mouse.delta;
         selectAction = actions.mouse.select;
+        cameraAction = actions.camera.zoom;
 
         Cursor.visible = false;
         target.gameObject.SetActive(false);
@@ -62,11 +65,13 @@ public class UIManager : MonoBehaviour
     void OnEnable()
     {
         actions.mouse.Enable();
+        actions.camera.Enable();
     }
 
     void OnDisable()
     {
         actions.mouse.Disable();
+        actions.camera.Disable();
     }
 #endregion Init
 
@@ -75,14 +80,20 @@ public class UIManager : MonoBehaviour
     {
         MoveCrosshair();
         SelectTarget();
+        CheckZoom();
     }
 
     private void MoveCrosshair() 
     {
         Vector2 mousePos = mouseAction.ReadValue<Vector2>();
-
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+        if( Physics.Raycast(ray, out RaycastHit hit))
+        {
+            
+            crosshair.position = hit.point;
+        }
+       
         // FIXME: Move the crosshair position to the mouse position (in world coordinates)
-        // crosshair.position = ...;
     }
 
     private void SelectTarget()
@@ -93,6 +104,19 @@ public class UIManager : MonoBehaviour
             target.gameObject.SetActive(true);
             target.position = crosshair.position;     
             TargetSelected?.Invoke(target.position);       
+        }
+    }
+    private void CheckZoom()
+    {
+        if(cameraAction.WasPerformedThisFrame())
+        {
+            float zoom = cameraAction.ReadValue<float>();
+            float newSize = Camera.main.orthographicSize + zoom / 100;
+
+            if (newSize > 0.1f && newSize < 100f)
+            {
+                Camera.main.orthographicSize = newSize;
+            }
         }
     }
 
