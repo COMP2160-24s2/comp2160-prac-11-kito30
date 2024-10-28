@@ -77,7 +77,7 @@ public static class RectExtensions  {
 
 	public static Vector3 Point(this Rect r, Vector2 p)
 	{
-		return r.Point(p.x, p.y);;
+		return r.Point(p.x, p.y);
 	}
 
 

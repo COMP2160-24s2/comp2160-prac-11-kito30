@@ -11,6 +11,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using WordsOnPlay.Utils;
 
 // note this has to run earlier than other classes which subscribe to the TargetSelected event
 [DefaultExecutionOrder(-100)]
@@ -19,6 +20,8 @@ public class UIManager : MonoBehaviour
 #region UI Elements
     [SerializeField] private Transform crosshair;
     [SerializeField] private Transform target;
+    [SerializeField] private bool maintainCam = false;
+    Plane plane;
 #endregion 
 
 #region Singleton
@@ -74,7 +77,10 @@ public class UIManager : MonoBehaviour
         actions.camera.Disable();
     }
 #endregion Init
-
+    void Start()
+    {
+        plane = new Plane(Vector3.up, Vector3.zero);
+    }
 #region Update
     void Update()
     {
@@ -82,16 +88,34 @@ public class UIManager : MonoBehaviour
         SelectTarget();
         CheckZoom();
     }
-
+   
     private void MoveCrosshair() 
     {
         Vector2 mousePos = mouseAction.ReadValue<Vector2>();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-        if( Physics.Raycast(ray, out RaycastHit hit))
+        if(maintainCam)
         {
-            
-            crosshair.position = hit.point;
+            Vector2 deltaPos = deltaAction.ReadValue<Vector2>();
+            Vector3 screenPosition = Camera.main.WorldToScreenPoint(crosshair.position);
+            // Apply deltaPos directly to the crosshair's current screen position
+            Vector3 newScreenPosition = (screenPosition + new Vector3(deltaPos.x, deltaPos.y, 0));
+            newScreenPosition.x = Mathf.Clamp(newScreenPosition.x, 0, Screen.width);
+            newScreenPosition.y = Mathf.Clamp(newScreenPosition.y, 0, Screen.height);
+            Ray ray = Camera.main.ScreenPointToRay(newScreenPosition);
+            if(plane.Raycast(ray, out float enter))
+            {
+                crosshair.position = ray.GetPoint(enter);
+            }
         }
+        else
+        {
+            Ray ray = Camera.main.ScreenPointToRay(mousePos);
+           //if( Physics.Raycast(ray, out RaycastHit hit))
+            if(plane.Raycast(ray, out float enter))
+            {
+                crosshair.position = ray.GetPoint(enter);
+            }
+        }
+        
        
         // FIXME: Move the crosshair position to the mouse position (in world coordinates)
     }
